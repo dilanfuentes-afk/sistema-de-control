@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive PID Control Simulator</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-900 text-gray-200 font-sans p-4 lg:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-purple-400">Interactive PID Control Simulator</h1>
+            <p class="text-gray-400 mt-2">A visual tool to understand and tune PID controllers in real-time.</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Diagram and Main Chart -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- PID Diagram Card -->
+                <div class="card">
+                    <h2 class="card-title">Control System Diagram</h2>
+                    <div id="pidDiagram" class="w-full h-64 mt-4">
+                        <!-- SVG diagram will be injected here by JavaScript -->
+                    </div>
+                    <!-- Signal Preview Popup -->
+                    <div id="signalPreview" class="absolute bg-gray-800 border border-purple-400 rounded-lg shadow-xl p-2 w-64 h-40" style="display: none; z-index: 50;">
+                        <canvas id="signalPreviewChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- System Response Chart Card -->
+                <div class="card">
+                    <h2 class="card-title">System Response</h2>
+                    <div class="chart-container h-96 mt-4">
+                        <canvas id="responseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Configuration and Tools -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Configuration Card -->
+                <div class="card">
+                    <h2 class="card-title">System & Controller Configuration</h2>
+                    <div class="space-y-4 mt-4">
+                        <!-- Plant Parameters -->
+                        <div>
+                            <label for="numerator">Plant Numerator</label>
+                            <input type="text" id="numerator" value="1" placeholder="e.g., 1, 2">
+                        </div>
+                        <div>
+                            <label for="denominator">Plant Denominator</label>
+                            <input type="text" id="denominator" value="1, 0.5, 1" placeholder="e.g., 1, 2, 1">
+                        </div>
+                        <!-- Hidden PID inputs linked to diagram sliders -->
+                        <input type="hidden" id="kp" value="1">
+                        <input type="hidden" id="ki" value="0.5">
+                        <input type="hidden" id="kd" value="0.1">
+
+                        <hr class="border-gray-600"/>
+
+                        <!-- Reference Signal -->
+                        <div>
+                            <label for="controlType">Reference Signal</label>
+                            <select id="controlType">
+                                <option value="step">Step</option>
+                                <option value="ramp">Ramp</option>
+                                <option value="sine">Sine Wave</option>
+                                <option value="square">Square Wave</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div id="amplitudeGroup">
+                                <label for="amplitude">Amplitude</label>
+                                <input type="number" id="amplitude" value="1" step="0.1">
+                            </div>
+                            <div id="frequencyGroup" style="display:none;">
+                                <label for="frequency">Frequency (Hz)</label>
+                                <input type="number" id="frequency" value="0.5" step="0.1">
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-600"/>
+
+                        <!-- Slider Range Configuration -->
+                        <div>
+                            <h3 class="text-lg font-semibold mb-3 text-purple-300">Slider Ranges</h3>
+                            <div class="grid grid-cols-3 gap-x-4 gap-y-2 items-center">
+                                <!-- Headers -->
+                                <div></div>
+                                <div class="text-xs text-center text-gray-400">Min</div>
+                                <div class="text-xs text-center text-gray-400">Max</div>
+
+                                <!-- Kp Range -->
+                                <label for="kpMin" class="font-bold text-gray-300">Kp</label>
+                                <input type="number" id="kpMin" value="0" class="slider-range-input">
+                                <input type="number" id="kpMax" value="20" class="slider-range-input">
+                                
+                                <!-- Ki Range -->
+                                <label for="kiMin" class="font-bold text-gray-300">Ki</label>
+                                <input type="number" id="kiMin" value="0" class="slider-range-input">
+                                <input type="number" id="kiMax" value="10" class="slider-range-input">
+
+                                <!-- Kd Range -->
+                                <label for="kdMin" class="font-bold text-gray-300">Kd</label>
+                                <input type="number" id="kdMin" value="0" class="slider-range-input">
+                                <input type="number" id="kdMax" value="5" class="slider-range-input">
+                            </div>
+                        </div>
+
+                        <hr class="border-gray-600"/>
+
+                        <!-- Simulation Parameters -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="simTime">Sim Time (s)</label>
+                                <input type="number" id="simTime" value="20" min="1">
+                            </div>
+                            <div>
+                                <label for="dt">Time Step (s)</label>
+                                <input type="number" id="dt" value="0.01" min="0.001" step="0.001">
+                            </div>
+                        </div>
+                        
+                        <button id="runButton" class="btn btn-primary w-full mt-2">Force Re-Run</button>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics Card -->
+                <div class="card">
+                    <h2 class="card-title">Performance Metrics</h2>
+                    <div class="grid grid-cols-2 gap-4 mt-4 text-center">
+                        <div class="metric-card">
+                            <div id="overshoot" class="metric-value">-</div>
+                            <div class="metric-label">Overshoot</div>
+                        </div>
+                        <div class="metric-card">
+                            <div id="riseTime" class="metric-value">-</div>
+                            <div class="metric-label">Rise Time</div>
+                        </div>
+                        <div class="metric-card">
+                            <div id="settlingTime" class="metric-value">-</div>
+                            <div class="metric-label">Settling Time</div>
+                        </div>
+                        <div class="metric-card">
+                            <div id="steadyStateError" class="metric-value">-</div>
+                            <div class="metric-label">SS Error</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ziegler-Nichols Tuning Card -->
+                <div class="card">
+                    <h2 class="card-title">Ziegler-Nichols Tuning</h2>
+                    <div class="space-y-3 mt-4">
+                        <button id="startZnButton" class="btn btn-secondary w-full">Start Z-N Tuning Process</button>
+                        <div>
+                            <label for="znKpSlider" class="flex justify-between"><span>Tuning Kp:</span> <span id="znKpValue">0</span></label>
+                            <input type="range" id="znKpSlider" min="0" max="50" step="0.1" value="0" class="w-full">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                             <div class="metric-card">
+                                <div id="kuValue" class="metric-value">-</div>
+                                <div class="metric-label">Ultimate Gain (Ku)</div>
+                            </div>
+                             <div class="metric-card">
+                                <div id="tuValue" class="metric-value">-</div>
+                                <div class="metric-label">Ultimate Period (Tu)</div>
+                            </div>
+                        </div>
+                        <div id="zn-suggestions"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="pid_controller.js"></script>
+</body>
+</html>
