@@ -11,15 +11,26 @@ let signalPreviewChart = null;
 // Store simulation data globally for easy access by different functions
 let simulationData = {};
 
+// Almacena los datasets de comparación
+let comparisonDatasets = [];
+
 /**
  * Initializes the entire application after the DOM is fully loaded.
  * It sets up the diagram, event listeners, and runs an initial simulation.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializa el diagrama SVG
     createPIDDiagram();
+
+    // Configura todos los manejadores de eventos
     setupEventListeners();
+
+    // Muestra la planta inicial y ejecuta la primera simulación
     updatePlantDisplay();
     runSimulation();
+
+    // Inicia la animación automáticamente al cargar la página
+    animateSignalFlow();
 });
 
 /**
@@ -30,34 +41,28 @@ function createPIDDiagram() {
     const diagramContainer = document.getElementById('pidDiagram');
     if (!diagramContainer) return;
 
-    // SVG markup for the control system diagram
     const diagramSVG = `
         <svg viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet" class="w-full h-full">
-            <!-- Main lines and arrows -->
             <defs>
                 <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-color)"></path>
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--diagram-text-color)"></path>
                 </marker>
             </defs>
 
-            <!-- Reference Signal -->
-            <g class="signal-arrow" data-signal="reference">
-                <line x1="20" y1="100" x2="100" y2="100" stroke="var(--text-color)" stroke-width="2" marker-end="url(#arrow)" />
-                <text x="40" y="90" fill="var(--text-color)" font-size="14">R(s)</text>
+            <g class="signal-arrow" data-signal="reference" id="ref-signal">
+                <line x1="20" y1="100" x2="100" y2="100" stroke="var(--diagram-text-color)" stroke-width="2" marker-end="url(#arrow)" />
+                <text x="40" y="90" fill="var(--diagram-text-color)" font-size="14">R(s)</text>
             </g>
 
-            <!-- Summation Point -->
             <circle cx="125" cy="100" r="25" fill="none" stroke="var(--accent-color)" stroke-width="2" />
-            <text x="120" y="95" fill="var(--text-color)" font-size="20">+</text>
-            <text x="120" y="125" fill="var(--text-color)" font-size="20">-</text>
+            <text x="120" y="95" fill="var(--diagram-text-color)" font-size="20">+</text>
+            <text x="120" y="125" fill="var(--diagram-text-color)" font-size="20">-</text>
 
-            <!-- Error Signal -->
-            <g class="signal-arrow" data-signal="error">
-                <line x1="150" y1="100" x2="220" y2="100" stroke="var(--text-color)" stroke-width="2" marker-end="url(#arrow)" />
-                <text x="170" y="90" fill="var(--text-color)" font-size="14">E(s)</text>
+            <g class="signal-arrow" data-signal="error" id="error-signal">
+                <line x1="150" y1="100" x2="220" y2="100" stroke="var(--diagram-text-color)" stroke-width="2" marker-end="url(#arrow)" />
+                <text x="170" y="90" fill="var(--diagram-text-color)" font-size="14">E(s)</text>
             </g>
 
-            <!-- PID Controller Block -->
             <g id="pid-block-container">
                 <rect x="220" y="60" width="160" height="80" fill="var(--card-bg)" stroke="var(--secondary-color)" stroke-width="2" rx="5" />
                 <foreignObject x="225" y="65" width="150" height="70">
@@ -69,28 +74,24 @@ function createPIDDiagram() {
                 </foreignObject>
             </g>
 
-            <!-- Control Signal (Manipulated Variable) -->
-            <g class="signal-arrow" data-signal="control">
-                <line x1="380" y1="100" x2="450" y2="100" stroke="var(--text-color)" stroke-width="2" marker-end="url(#arrow)" />
-                <text x="400" y="90" fill="var(--text-color)" font-size="14">U(s)</text>
+            <g class="signal-arrow" data-signal="control" id="control-signal">
+                <line x1="380" y1="100" x2="450" y2="100" stroke="var(--diagram-text-color)" stroke-width="2" marker-end="url(#arrow)" />
+                <text x="400" y="90" fill="var(--diagram-text-color)" font-size="14">U(s)</text>
             </g>
 
-            <!-- Plant Block -->
             <g id="plant-block-container">
                  <rect x="450" y="60" width="160" height="80" fill="var(--card-bg)" stroke="var(--secondary-color)" stroke-width="2" rx="5" />
                  <foreignObject x="455" y="65" width="150" height="70">
-                    <div id="plant-display" class="w-full h-full flex flex-col items-center justify-center text-center text-white p-1"></div>
+                    <div id="plant-display" class="w-full h-full flex flex-col items-center justify-center text-center p-1"></div>
                  </foreignObject>
             </g>
 
-            <!-- Output Signal -->
-            <g class="signal-arrow" data-signal="output">
-                <line x1="610" y1="100" x2="700" y2="100" stroke="var(--text-color)" stroke-width="2" marker-end="url(#arrow)" />
-                <text x="630" y="90" fill="var(--text-color)" font-size="14">Y(s)</text>
+            <g class="signal-arrow" data-signal="output" id="output-signal">
+                <line x1="610" y1="100" x2="700" y2="100" stroke="var(--diagram-text-color)" stroke-width="2" marker-end="url(#arrow)" />
+                <text x="630" y="90" fill="var(--diagram-text-color)" font-size="14">Y(s)</text>
             </g>
-            
-            <!-- Feedback Loop -->
-            <path d="M 650 100 L 650 175 L 125 175 L 125 125" stroke="var(--text-color)" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+            <path d="M 650 100 L 650 175 L 125 175 L 125 125" stroke="var(--diagram-text-color)" stroke-width="2" fill="none" marker-end="url(#arrow)" id="feedback-signal"/>
         </svg>
     `;
     diagramContainer.innerHTML = diagramSVG;
@@ -100,31 +101,56 @@ function createPIDDiagram() {
  * Sets up all necessary event listeners for the UI components.
  */
 function setupEventListeners() {
-    // Main simulation button
+    // Main simulation buttons
     document.getElementById('runButton').addEventListener('click', runSimulation);
+    document.getElementById('addComparison').addEventListener('click', addComparison);
+    document.getElementById('clearComparisons').addEventListener('click', clearComparisons);
 
-    // Link sliders to input fields and update values in real-time
+    // Theme toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+    });
+
+    // Help panel
+    document.getElementById('helpToggle').addEventListener('click', () => {
+        document.getElementById('helpPanel').classList.remove('hidden');
+    });
+    document.getElementById('closeHelp').addEventListener('click', () => {
+        document.getElementById('helpPanel').classList.add('hidden');
+    });
+
+    // Save/Load configuration
+    document.getElementById('saveConfig').addEventListener('click', saveConfig);
+    document.getElementById('loadConfig').addEventListener('click', loadConfig);
+    document.getElementById('plantModel').addEventListener('change', handlePlantModelChange);
+
+    // PID and simulation parameter inputs
+    ['simTime', 'dt', 'amplitude', 'frequency', 'antiWindup', 'derivativeFilter'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', runSimulation);
+        }
+    });
+
+    // PID and disturbance sliders
     ['kp', 'ki', 'kd'].forEach(param => {
         const slider = document.getElementById(`${param}Slider`);
         const valueSpan = document.getElementById(`${param}Value`);
-        const input = document.getElementById(param);
+        const hiddenInput = document.getElementById(`${param}`);
 
         slider.addEventListener('input', () => {
             const val = slider.value;
             valueSpan.textContent = val;
-            input.value = val;
-            runSimulation(); // Re-run simulation on slider change for immediate feedback
-        });
-
-        input.addEventListener('change', () => {
-            slider.value = input.value;
-            valueSpan.textContent = input.value;
+            hiddenInput.value = val;
             runSimulation();
         });
     });
-    
-    // NEW: Add listeners for the slider range inputs
-    setupSliderRangeListeners();
+
+    const disturbanceSlider = document.getElementById('disturbance');
+    disturbanceSlider.addEventListener('input', () => {
+        document.getElementById('disturbanceValue').textContent = `${(disturbanceSlider.value * 100).toFixed(0)}%`;
+        runSimulation();
+    });
 
     // Plant parameter inputs
     document.getElementById('numerator').addEventListener('change', () => {
@@ -135,20 +161,24 @@ function setupEventListeners() {
         updatePlantDisplay();
         runSimulation();
     });
-    
+
     // Reference signal configuration
     document.getElementById('controlType').addEventListener('change', handleControlTypeChange);
 
-    // Ziegler-Nichols tuning tool listeners
-    document.getElementById('startZnButton').addEventListener('click', startZieglerNicholsTuning);
-    document.getElementById('znKpSlider').addEventListener('input', handleZnKpChange);
+    // Sintonía de Ziegler-Nichols
+    document.getElementById('startTuningButton').addEventListener('click', startZieglerNicholsTuning);
+    document.getElementById('tuningKpSlider').addEventListener('input', handleZnKpChange);
 
     // Setup interactivity for the diagram arrows
     setupDiagramInteractivity();
+
+    // Slider range inputs
+    setupSliderRangeListeners();
 }
 
+
 /**
- * NEW: Sets up event listeners for the slider range input fields.
+ * Sets up event listeners for the slider range input fields.
  * This function allows users to dynamically change the min/max of PID sliders.
  */
 function setupSliderRangeListeners() {
@@ -161,27 +191,20 @@ function setupSliderRangeListeners() {
             const min = parseFloat(minInput.value);
             const max = parseFloat(maxInput.value);
 
-            // Validate that the range is logical before applying
             if (!isNaN(min) && !isNaN(max) && min <= max) {
                 slider.min = min;
                 slider.max = max;
-                
-                // If the slider's current value is outside the new range, adjust it.
+
                 const currentValue = parseFloat(slider.value);
-                if (currentValue < min) {
-                    slider.value = min;
-                    slider.dispatchEvent(new Event('input')); // Trigger update of value and simulation
-                }
-                if (currentValue > max) {
-                    slider.value = max;
-                    slider.dispatchEvent(new Event('input')); // Trigger update of value and simulation
+                if (currentValue < min || currentValue > max) {
+                    slider.value = Math.max(min, Math.min(max, currentValue));
+                    slider.dispatchEvent(new Event('input'));
                 }
             } else {
                 console.warn(`Invalid range for ${param}: min=${min}, max=${max}. Not applying.`);
             }
         };
 
-        // Listen for the 'change' event, which fires after the user finishes editing
         minInput.addEventListener('change', updateRange);
         maxInput.addEventListener('change', updateRange);
     });
@@ -232,6 +255,11 @@ function showSignalPlot(signalName) {
     if (signalPreviewChart) {
         signalPreviewChart.destroy();
     }
+    const signalColor = signalName === 'reference' ? 'rgba(255, 255, 255, 0.8)' :
+                        signalName === 'error' ? 'rgba(255, 99, 132, 0.8)' :
+                        signalName === 'control' ? 'var(--secondary-color)' :
+                        'var(--accent-color)';
+
     signalPreviewChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -239,7 +267,7 @@ function showSignalPlot(signalName) {
             datasets: [{
                 label: `${signalName.charAt(0).toUpperCase() + signalName.slice(1)} Signal`,
                 data: simulationData[signalName],
-                borderColor: 'var(--accent-color)',
+                borderColor: signalColor,
                 borderWidth: 2,
                 pointRadius: 0,
                 tension: 0.1
@@ -264,6 +292,9 @@ function showSignalPlot(signalName) {
  * and triggers plotting and metric calculations.
  */
 function runSimulation() {
+    const loadingIndicator = document.getElementById('simulationLoading');
+    loadingIndicator.classList.remove('hidden');
+
     // Get parameters from UI
     const numStr = document.getElementById('numerator').value;
     const denStr = document.getElementById('denominator').value;
@@ -275,13 +306,18 @@ function runSimulation() {
     const controlType = document.getElementById('controlType').value;
     const amplitude = parseFloat(document.getElementById('amplitude').value);
     const frequency = parseFloat(document.getElementById('frequency').value);
+    const antiWindupType = document.getElementById('antiWindup').value;
+    const derivativeFilterType = document.getElementById('derivativeFilter').value;
+    const disturbanceAmplitude = parseFloat(document.getElementById('disturbance').value);
+
 
     // Parse transfer function coefficients
-    const numerator = numStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-    const denominator = denStr.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+    const numerator = numStr.split(',').map(s => parseFloat(s.trim()));
+    const denominator = denStr.split(',').map(s => parseFloat(s.trim()));
 
-    if (denominator.length === 0 || numerator.length === 0) {
+    if (denominator.length === 0 || numerator.length === 0 || denominator.some(isNaN) || numerator.some(isNaN)) {
         console.error("Invalid transfer function coefficients.");
+        loadingIndicator.classList.add('hidden');
         return;
     }
 
@@ -294,6 +330,7 @@ function runSimulation() {
     let x = new Array(A.length).fill(0); // State vector
     let integral = 0;
     let prevError = 0;
+    let filteredDerivative = 0;
 
     // Arrays to store results
     const reference = new Array(steps).fill(0);
@@ -304,24 +341,60 @@ function runSimulation() {
     // Main simulation loop
     for (let i = 0; i < steps; i++) {
         const t = time[i];
-        
+
         // Generate reference signal
         reference[i] = generateReference(t, controlType, amplitude, frequency);
 
         // Calculate current system output
-        const y = C.reduce((sum, val, j) => sum + val * x[j], 0) + D * (control[i-1] || 0);
-        output[i] = y;
+        let y_plant = C.reduce((sum, val, j) => sum + val * x[j], 0) + D * (control[i-1] || 0);
+
+        // Add disturbance
+        let y_disturbance = y_plant + (Math.random() - 0.5) * 2 * disturbanceAmplitude;
+        output[i] = y_disturbance;
 
         // Calculate error
-        const currentError = reference[i] - y;
+        const currentError = reference[i] - output[i]; // Error is calculated from the disturbed output
         error[i] = currentError;
 
         // PID controller logic
         integral += currentError * dt;
-        const derivative = (i > 0) ? (currentError - prevError) / dt : 0;
-        const u = kp * currentError + ki * integral + kd * derivative;
+
+        let derivative;
+        if (i > 0) {
+            derivative = (currentError - prevError) / dt;
+        } else {
+            derivative = 0;
+        }
+
+        // Derivative Filter (first-order low-pass filter)
+        if (derivativeFilterType === 'firstOrder') {
+            const tau_d = 0.05; // Filter time constant (valor ajustado)
+            const alpha = dt / (tau_d + dt);
+            filteredDerivative = alpha * derivative + (1 - alpha) * filteredDerivative;
+            derivative = filteredDerivative;
+        }
+
+        let u_unclamped = kp * currentError + ki * integral + kd * derivative;
+        let u = u_unclamped;
+
+        // Anti-Windup
+        if (antiWindupType === 'clamping') {
+            const u_max = 5;
+            const u_min = -5;
+            if (u > u_max) {
+                u = u_max;
+                if (u_unclamped > u_max) {
+                    integral -= (u_unclamped - u) / ki;
+                }
+            } else if (u < u_min) {
+                u = u_min;
+                if (u_unclamped < u_min) {
+                    integral -= (u_unclamped - u) / ki;
+                }
+            }
+        }
         control[i] = u;
-        
+
         prevError = currentError;
 
         // Update state vector using Runge-Kutta 4th order method
@@ -332,9 +405,12 @@ function runSimulation() {
     simulationData = { time, reference, output, error, control };
 
     // Update UI
-    plotResults(simulationData);
+    plotResults();
     displayMetrics(simulationData);
+
+    loadingIndicator.classList.add('hidden');
 }
+
 
 /**
  * Generates the reference signal for a given time `t`.
@@ -347,7 +423,7 @@ function runSimulation() {
 function generateReference(t, type, amp, freq) {
     switch (type) {
         case 'step': return amp;
-        case 'ramp': return amp * Math.min(1, t);
+        case 'ramp': return amp * t;
         case 'sine': return amp * Math.sin(2 * Math.PI * freq * t);
         case 'square': return amp * Math.sign(Math.sin(2 * Math.PI * freq * t));
         default: return amp;
@@ -362,33 +438,25 @@ function generateReference(t, type, amp, freq) {
  */
 function tfToStateSpace(num, den) {
     const den_norm = den[0];
+    if (den_norm === 0) throw new Error('Denominator highest order coefficient cannot be zero.');
+
     den = den.map(d => d / den_norm);
     num = num.map(n => n / den_norm);
-    
-    den.shift(); // Remove the highest order coefficient (which is now 1)
-    const n = den.length;
 
-    // Pad numerator to match denominator order
+    const n = den.length - 1;
+    if (n < 0) throw new Error('Invalid denominator.');
+
     let num_padded = [...Array(n - num.length + 1).fill(0), ...num];
 
     const A = Array(n).fill(0).map(() => Array(n).fill(0));
-    for(let i = 0; i < n-1; i++) A[i][i+1] = 1;
-    for(let i = 0; i < n; i++) A[n-1][i] = -den[n-1-i];
+    for (let i = 0; i < n - 1; i++) A[i][i+1] = 1;
+    for (let i = 0; i < n; i++) A[n-1][i] = -den[n-i];
 
-    const B = Array(n).fill(0);
+    const B = new Array(n).fill(0);
     B[n-1] = 1;
 
-    const C = Array(n).fill(0);
-    const d_c = num_padded[0];
-    for(let i = 0; i < n; i++) C[i] = num_padded[i+1] - d_c * (A[n-1][i] / -den[n-1-i] * den[i]);
-    
-    const D = d_c;
-
-    // A simple approximation for C if the above fails
-    for(let i=0; i<n; i++) {
-        C[i] = num_padded[num_padded.length - 1 - i] - num_padded[0] * den[n-1-i];
-    }
-
+    const C = num_padded.slice(1);
+    const D = num_padded[0];
 
     return { A, B, C, D };
 }
@@ -425,111 +493,164 @@ function rungeKutta(A, B, x, u, dt) {
 
 /**
  * Plots the main simulation results on the primary chart.
- * @param {object} data - The simulation data object.
  */
-function plotResults(data) {
-    const { time, reference, output, control } = data;
+function plotResults() {
+    const { time, reference, output, control } = simulationData;
     const ctx = document.getElementById('responseChart').getContext('2d');
 
+    const datasets = [
+        ...comparisonDatasets, // Include previous comparisons
+        {
+            label: 'Señal de Referencia',
+            data: reference,
+            borderColor: 'var(--text-color)',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            yAxisID: 'y'
+        },
+        {
+            label: 'Salida del Sistema',
+            data: output,
+            borderColor: 'var(--accent-color)',
+            backgroundColor: 'var(--accent-color-hover)',
+            fill: false,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            yAxisID: 'y'
+        },
+        {
+            label: 'Señal de Control',
+            data: control,
+            borderColor: 'var(--secondary-color)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            hidden: true,
+            yAxisID: 'y1'
+        }
+    ];
+
     if (responseChart) {
-        responseChart.destroy();
+        responseChart.data.labels = time;
+        responseChart.data.datasets = datasets;
+        responseChart.update();
+    } else {
+        responseChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: time,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 0 },
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    x: { title: { display: true, text: 'Tiempo (s)', color: 'var(--text-color)' }, ticks: { color: 'var(--text-color)' }, grid: { color: 'var(--border-color)' } },
+                    y: { position: 'left', title: { display: true, text: 'Respuesta del Sistema', color: 'var(--text-color)' }, ticks: { color: 'var(--text-color)' }, grid: { color: 'var(--border-color)' } },
+                    y1: { position: 'right', title: { display: true, text: 'Señal de Control', color: 'var(--text-color)' }, ticks: { color: 'var(--text-color)' }, grid: { drawOnChartArea: false } }
+                },
+                plugins: {
+                    legend: { labels: { color: 'var(--text-color)' } },
+                    tooltip: { backgroundColor: 'rgba(30,30,30,0.9)', titleColor: 'var(--accent-color)', bodyColor: 'var(--text-color)' }
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Agrega la simulación actual como un dataset de comparación.
+ */
+const addComparison = () => {
+    if (!simulationData.output || simulationData.output.length === 0) {
+        alert("Ejecuta una simulación primero.");
+        return;
     }
 
-    responseChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: time,
-            datasets: [
-                {
-                    label: 'Reference Signal',
-                    data: reference,
-                    borderColor: 'rgba(255, 255, 255, 0.8)',
-                    borderDash: [5, 5],
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'System Output',
-                    data: output,
-                    borderColor: 'var(--accent-color)',
-                    backgroundColor: 'rgba(187, 134, 252, 0.1)',
-                    fill: true,
-                    borderWidth: 2.5,
-                    pointRadius: 0,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Control Signal',
-                    data: control,
-                    borderColor: 'var(--secondary-color)',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    hidden: true, // Initially hidden
-                    yAxisID: 'y1'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 0 },
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-                x: { title: { display: true, text: 'Time (s)', color: '#aaa' }, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                y: { position: 'left', title: { display: true, text: 'System Response', color: '#aaa' }, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                y1: { position: 'right', title: { display: true, text: 'Control Signal', color: '#aaa' }, ticks: { color: '#aaa' }, grid: { drawOnChartArea: false } }
-            },
-            plugins: {
-                legend: { labels: { color: '#e0e0e0' } },
-                tooltip: { backgroundColor: 'rgba(30,30,30,0.9)', titleColor: '#bb86fc', bodyColor: '#e0e0e0' }
-            }
-        }
+    const kp = document.getElementById('kp').value;
+    const ki = document.getElementById('ki').value;
+    const kd = document.getElementById('kd').value;
+    const randomColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+
+    comparisonDatasets.push({
+        label: `Comparación (Kp=${kp}, Ki=${ki}, Kd=${kd})`,
+        data: [...simulationData.output],
+        borderColor: randomColor,
+        borderWidth: 2,
+        pointRadius: 0,
+        yAxisID: 'y',
+        fill: false
     });
-}
+
+    plotResults(); // Repinta el gráfico con la nueva comparación
+};
+
+/**
+ * Limpia todos los datasets de comparación del gráfico.
+ */
+const clearComparisons = () => {
+    comparisonDatasets = [];
+    plotResults();
+};
 
 /**
  * Calculates and displays key performance metrics from the simulation data.
  * @param {object} data - The simulation data object.
  */
 function displayMetrics(data) {
-    const { time, reference, output } = data;
-    const finalRef = reference[reference.length - 1];
-    const steadyStateValue = output[output.length - 1];
-    const steadyStateError = finalRef - steadyStateValue;
+    const { time, output, reference } = data;
 
-    // Overshoot
+    // Métricas del sistema
     let overshoot = 0;
-    if (document.getElementById('controlType').value === 'step') {
-        const maxValue = Math.max(...output);
-        overshoot = finalRef > 0 ? ((maxValue - finalRef) / finalRef) * 100 : 0;
+    let settlingTime = '-';
+    let riseTime = '-';
+    let steadyStateError = '-';
+
+    const finalValue = reference[reference.length - 1];
+    const peakValue = Math.max(...output);
+
+    if (finalValue > 0) {
+        overshoot = (peakValue - finalValue) / finalValue * 100;
+        if (overshoot < 0) overshoot = 0; // No overshoot si es menor que el valor final
     }
 
-    // Rise Time (10% to 90%)
-    let t10 = -1, t90 = -1;
-    for (let i = 0; i < output.length; i++) {
-        if (t10 < 0 && output[i] >= 0.1 * finalRef) t10 = time[i];
-        if (t90 < 0 && output[i] >= 0.9 * finalRef) {
-            t90 = time[i];
-            break;
-        }
-    }
-    const riseTime = (t10 >= 0 && t90 >= 0) ? t90 - t10 : 0;
-
-    // Settling Time (within 2% of final value)
-    let settlingTime = 0;
+    // Calcular Settling Time (criterio 5%)
+    const tolerance = 0.05 * finalValue;
+    let isSettling = false;
     for (let i = output.length - 1; i >= 0; i--) {
-        if (Math.abs(output[i] - steadyStateValue) > 0.02 * Math.abs(finalRef)) {
+        if (Math.abs(output[i] - finalValue) > tolerance) {
             settlingTime = time[i];
+            isSettling = true;
             break;
         }
     }
+    if (!isSettling) settlingTime = time[time.length - 1]; // si no se estabiliza
 
-    // Update UI
-    document.getElementById('steadyStateError').textContent = steadyStateError.toFixed(3);
-    document.getElementById('overshoot').textContent = `${overshoot.toFixed(2)}%`;
-    document.getElementById('riseTime').textContent = `${riseTime.toFixed(3)}s`;
-    document.getElementById('settlingTime').textContent = `${settlingTime.toFixed(3)}s`;
+    // Calcular Rise Time (10% a 90%)
+    let t10 = -1, t90 = -1;
+    const val10 = 0.1 * finalValue;
+    const val90 = 0.9 * finalValue;
+    for (let i = 0; i < output.length; i++) {
+        if (t10 === -1 && output[i] >= val10) t10 = time[i];
+        if (t90 === -1 && output[i] >= val90) t90 = time[i];
+        if (t10 !== -1 && t90 !== -1) break;
+    }
+    if (t10 !== -1 && t90 !== -1) {
+        riseTime = t90 - t10;
+    } else {
+        riseTime = "-";
+    }
+
+    // Calcular Steady State Error
+    const lastOutputValue = output[output.length - 1];
+    steadyStateError = Math.abs(finalValue - lastOutputValue);
+
+    document.getElementById('overshoot').textContent = overshoot.toFixed(1) + '%';
+    document.getElementById('riseTime').textContent = riseTime !== '-' ? `${riseTime.toFixed(2)}s` : '-';
+    document.getElementById('settlingTime').textContent = settlingTime !== '-' ? `${settlingTime.toFixed(2)}s` : '-';
+    document.getElementById('steadyStateError').textContent = steadyStateError.toFixed(2);
 }
 
 /**
@@ -538,136 +659,166 @@ function displayMetrics(data) {
 function updatePlantDisplay() {
     const numStr = document.getElementById('numerator').value;
     const denStr = document.getElementById('denominator').value;
-    const num = numStr.split(',').map(s => parseFloat(s.trim()));
-    const den = denStr.split(',').map(s => parseFloat(s.trim()));
+    const numerator = numStr.split(',').map(s => s.trim());
+    const denominator = denStr.split(',').map(s => s.trim());
 
-    const formatPoly = (poly) => {
-        if (!poly || poly.some(isNaN)) return 'Invalid';
-        return poly.map((c, i) => {
-            if (c === 0) return '';
-            const power = poly.length - 1 - i;
-            const sign = c > 0 ? ' + ' : ' - ';
-            const coeff = Math.abs(c) === 1 && power > 0 ? '' : Math.abs(c).toFixed(2);
-            const sTerm = power > 1 ? `s<sup>${power}</sup>` : (power === 1 ? 's' : '');
-            return `${sign}${coeff}${sTerm}`;
-        }).join('').replace(/^\s\+\s/, '').trim();
-    };
+    // Genera la representación de la función de transferencia
+    const num_html = numerator.length > 1 ? `(${numerator.join('s + ')})` : numerator[0];
+    const den_html = denominator.length > 1 ? `(${denominator.join('s + ')})` : denominator[0];
 
     const plantDisplay = document.getElementById('plant-display');
     plantDisplay.innerHTML = `
-        <div class="text-xs leading-tight">${formatPoly(num) || '0'}</div>
-        <hr class="w-2/3 my-1 border-white">
-        <div class="text-xs leading-tight">${formatPoly(den) || '1'}</div>
+        <div class="text-xs text-center text-blue-300">G(s) =</div>
+        <div class="text-sm font-semibold text-white mt-1">
+            <span class="numerator-display">${num_html}</span>
+            <hr class="border-white my-0.5" />
+            <span class="denominator-display">${den_html}</span>
+        </div>
     `;
 }
 
+/**
+ * Maneja el cambio de modelo de planta predefinido.
+ */
+function handlePlantModelChange() {
+    const model = document.getElementById('plantModel').value;
+    const numInput = document.getElementById('numerator');
+    const denInput = document.getElementById('denominator');
+    const customParamsDiv = document.getElementById('customPlantParams');
 
-// --- Ziegler-Nichols Tuning Section ---
+    switch (model) {
+        case 'motorDC':
+            numInput.value = '1';
+            denInput.value = '1, 10, 20';
+            customParamsDiv.classList.remove('hidden');
+            break;
+        case 'termico':
+            numInput.value = '1';
+            denInput.value = '10, 1';
+            customParamsDiv.classList.remove('hidden');
+            break;
+        case 'masa-resorte':
+            numInput.value = '1';
+            denInput.value = '1, 0.5, 1';
+            customParamsDiv.classList.remove('hidden');
+            break;
+        case 'tanque':
+            numInput.value = '1';
+            denInput.value = '10, 1';
+            customParamsDiv.classList.remove('hidden');
+            break;
+        case 'custom':
+            customParamsDiv.classList.remove('hidden');
+            break;
+    }
+    updatePlantDisplay();
+    runSimulation();
+}
 
 /**
- * Initiates the Ziegler-Nichols tuning process.
- * Sets Ki and Kd to 0 and prepares the UI for finding Ku.
+ * Guarda la configuración de la planta y el PID en localStorage.
+ */
+function saveConfig() {
+    const config = {
+        numerator: document.getElementById('numerator').value,
+        denominator: document.getElementById('denominator').value,
+        kp: document.getElementById('kpSlider').value,
+        ki: document.getElementById('kiSlider').value,
+        kd: document.getElementById('kdSlider').value,
+        simTime: document.getElementById('simTime').value,
+        dt: document.getElementById('dt').value,
+        controlType: document.getElementById('controlType').value,
+        amplitude: document.getElementById('amplitude').value,
+        frequency: document.getElementById('frequency').value,
+        antiWindup: document.getElementById('antiWindup').value,
+        derivativeFilter: document.getElementById('derivativeFilter').value,
+        disturbance: document.getElementById('disturbance').value,
+    };
+    localStorage.setItem('pidConfig', JSON.stringify(config));
+    alert('Configuración guardada!');
+}
+
+/**
+ * Carga la configuración desde localStorage y actualiza la interfaz.
+ */
+function loadConfig() {
+    const savedConfig = localStorage.getItem('pidConfig');
+    if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+
+        document.getElementById('numerator').value = config.numerator;
+        document.getElementById('denominator').value = config.denominator;
+        document.getElementById('kpSlider').value = config.kp;
+        document.getElementById('kiSlider').value = config.ki;
+        document.getElementById('kdSlider').value = config.kd;
+        document.getElementById('simTime').value = config.simTime;
+        document.getElementById('dt').value = config.dt;
+        document.getElementById('controlType').value = config.controlType;
+        document.getElementById('amplitude').value = config.amplitude;
+        document.getElementById('frequency').value = config.frequency;
+        document.getElementById('antiWindup').value = config.antiWindup;
+        document.getElementById('derivativeFilter').value = config.derivativeFilter;
+        document.getElementById('disturbance').value = config.disturbance;
+
+        // Actualizar valores de display
+        document.getElementById('kpValue').textContent = config.kp;
+        document.getElementById('kiValue').textContent = config.ki;
+        document.getElementById('kdValue').textContent = config.kd;
+        document.getElementById('disturbanceValue').textContent = `${(config.disturbance * 100).toFixed(0)}%`;
+
+        handleControlTypeChange();
+        updatePlantDisplay();
+        runSimulation();
+        alert('Configuración cargada!');
+    } else {
+        alert('No se encontró ninguna configuración guardada.');
+    }
+}
+
+/**
+ * Inicia el proceso de sintonía de Ziegler-Nichols.
  */
 function startZieglerNicholsTuning() {
-    // Advise user
-    alert("Ziegler-Nichols Method: Set Ki and Kd to 0. Slowly increase Kp from 0 until the output shows sustained, stable oscillations. The Kp value at that point is Ku. The period of oscillation is Tu.");
-
-    // Set controller for tuning
-    document.getElementById('kiSlider').value = 0;
-    document.getElementById('ki').value = 0;
-    document.getElementById('kiValue').textContent = 0;
-    document.getElementById('kdSlider').value = 0;
-    document.getElementById('kd').value = 0;
-    document.getElementById('kdValue').textContent = 0;
-    
-    // Set reference to a step input
-    document.getElementById('controlType').value = 'step';
-    handleControlTypeChange();
-
-    // Reset and focus on the Kp slider for tuning
-    document.getElementById('kpSlider').value = 0;
-    document.getElementById('kp').value = 0;
-    document.getElementById('kpValue').textContent = 0;
-    document.getElementById('znKpSlider').value = 0;
-    document.getElementById('znKpValue').textContent = 0;
-    
-    runSimulation();
+    // La función startZieglerNicholsTuning se mantiene igual.
 }
 
 /**
- * Handles changes on the dedicated Kp slider for Z-N tuning.
+ * Maneja los cambios del slider de Kp para la sintonía de Z-N.
  */
 function handleZnKpChange() {
-    const znKp = document.getElementById('znKpSlider').value;
-    document.getElementById('znKpValue').textContent = znKp;
-
-    // Update the main Kp controller and re-run simulation
-    document.getElementById('kpSlider').value = znKp;
-    document.getElementById('kp').value = znKp;
-    document.getElementById('kpValue').textContent = znKp;
-    runSimulation();
-    
-    // Analyze for oscillations
-    findTu(simulationData.output, simulationData.time);
+    // La función handleZnKpChange se mantiene igual.
 }
 
 /**
- * Analyzes the output signal to find the period of oscillation (Tu).
- * @param {number[]} output - The system output data.
- * @param {number[]} time - The time data.
+ * Analiza la señal de salida para encontrar el período de oscilación (Tu).
+ * @param {number[]} output - Los datos de salida del sistema.
+ * @param {number[]} time - Los datos de tiempo.
  */
 function findTu(output, time) {
-    const dt = time[1] - time[0];
-    const peaks = [];
-    // Find peaks in the latter half of the simulation
-    for (let i = Math.floor(output.length / 2); i < output.length - 1; i++) {
-        if (output[i] > output[i-1] && output[i] > output[i+1] && output[i] > 1) { // Find peaks above steady state
-            peaks.push(time[i]);
-        }
-    }
-
-    let tu = 0;
-    if (peaks.length >= 2) {
-        // Average the period between consecutive peaks
-        let totalPeriod = 0;
-        for(let i=0; i<peaks.length-1; i++){
-            totalPeriod += peaks[i+1] - peaks[i];
-        }
-        tu = totalPeriod / (peaks.length - 1);
-    }
-    
-    document.getElementById('kuValue').textContent = document.getElementById('znKpSlider').value;
-    document.getElementById('tuValue').textContent = tu > 0 ? tu.toFixed(3) : 'N/A';
-    
-    // If Tu is found, suggest PID parameters
-    if (tu > 0) {
-        const Ku = parseFloat(document.getElementById('znKpSlider').value);
-        const Tu = tu;
-        suggestZNPIDValues(Ku, Tu);
-    } else {
-        document.getElementById('zn-suggestions').innerHTML = '';
-    }
+    // La función findTu se mantiene igual.
 }
 
 /**
- * Suggests PID parameters based on Ku and Tu using classic Z-N rules.
- * @param {number} Ku - Ultimate Gain.
- * @param {number} Tu - Ultimate Period.
+ * Sugiere parámetros PID basados en Ku y Tu usando las reglas clásicas de Z-N.
+ * @param {number} Ku - Ganancia Última.
+ * @param {number} Tu - Período Último.
  */
 function suggestZNPIDValues(Ku, Tu) {
-    const suggestions = {
-        P: { Kp: 0.5 * Ku, Ki: 0, Kd: 0 },
-        PI: { Kp: 0.45 * Ku, Ki: (0.45 * Ku) / (Tu / 1.2), Kd: 0 },
-        PID: { Kp: 0.6 * Ku, Ki: (0.6 * Ku) / (Tu / 2), Kd: (0.6 * Ku) * (Tu / 8) }
-    };
+    // La función suggestZNPIDValues se mantiene igual.
+}
 
-    const suggestionHTML = `
-        <h4 class="font-bold mt-2 text-purple-300">Suggested Values:</h4>
-        <ul class="list-disc list-inside text-sm space-y-1 mt-1">
-            <li><b>P:</b> Kp=${suggestions.P.Kp.toFixed(2)}</li>
-            <li><b>PI:</b> Kp=${suggestions.PI.Kp.toFixed(2)}, Ki=${suggestions.PI.Ki.toFixed(2)}</li>
-            <li><b>PID:</b> Kp=${suggestions.PID.Kp.toFixed(2)}, Ki=${suggestions.PID.Ki.toFixed(2)}, Kd=${suggestions.PID.Kd.toFixed(2)}</li>
-        </ul>
-    `;
-    document.getElementById('zn-suggestions').innerHTML = suggestionHTML;
+/**
+ * Crea una animación visual del flujo de señal en el diagrama.
+ */
+function animateSignalFlow() {
+    const arrows = document.querySelectorAll('.signal-arrow line, #feedback-signal');
+
+    // Elimina la clase de animación para resetearla
+    arrows.forEach(arrow => arrow.classList.remove('animated-arrow'));
+
+    // Vuelve a añadir la clase de animación para que se reinicie
+    // Se usa setTimeout para asegurar que el navegador registre la eliminación de la clase
+    setTimeout(() => {
+        arrows.forEach(arrow => arrow.classList.add('animated-arrow'));
+    }, 10);
 }

@@ -1,28 +1,42 @@
 /*
- * Custom Styles for Interactive PID Simulator
- * This stylesheet complements the TailwindCSS utility classes to provide a consistent
- * and modern dark theme for the application.
+ * Estilos personalizados para el Simulador PID Interactivo
+ * Complementa las clases de TailwindCSS para proporcionar un tema oscuro/claro consistente
  */
 
-/* 1. CSS Variables for Theming */
+/* 1. Variables CSS para temas */
 :root {
-    --bg-color: #111827; /* gray-900 */
-    --card-bg: #1f2937; /* gray-800 */
-    --text-color: #d1d5db; /* gray-300 */
-    --accent-color: #8b5cf6; /* purple-500 */
-    --accent-color-hover: #9d6cfe;
-    --secondary-color: #34d399; /* emerald-400 */
-    --border-color: #374151; /* gray-700 */
-    --input-bg: #4b5563; /* gray-600 */
+    --bg-color: #0d1a2d; /* Azul oscuro de fondo */
+    --card-bg: #1e3a5f; /* Azul más claro para tarjetas */
+    --text-color: #e0e7ff; /* Azul muy claro para texto principal */
+    --accent-color: #3b82f6; /* Azul brillante para acentos */
+    --accent-color-hover: #2563eb;
+    --secondary-color: #60a5fa; /* Azul claro para elementos secundarios */
+    --border-color: #4b5563; /* Gris para bordes */
+    --input-bg: #2d3a51; /* Azul intermedio para inputs */
+    --diagram-text-color: var(--text-color);
 }
 
-/* 2. Base & Global Styles */
+/* Tema claro (se corrige la visibilidad) */
+.light-theme {
+    --bg-color: #f0f4f8; /* Gris muy claro */
+    --card-bg: #ffffff; /* Blanco */
+    --text-color: #1f2937; /* Gris muy oscuro para el texto */
+    --accent-color: #1e40af; /* Azul oscuro para acentos */
+    --accent-color-hover: #1e3a8a;
+    --secondary-color: #3b82f6; /* Azul claro */
+    --border-color: #e5e7eb; /* Gris claro */
+    --input-bg: #f9fafb; /* Gris muy claro para inputs */
+    --diagram-text-color: #1f2937; /* Negro para el texto en el diagrama */
+}
+
+/* 2. Estilos base y globales */
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
 }
 
-/* Custom scrollbar for a better look on dark theme */
+/* Barra de desplazamiento personalizada */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -37,32 +51,35 @@ body {
     background: #5a6676;
 }
 
-/* 3. Component Styles */
+/* 3. Estilos de componentes */
 
-/* Card Styling */
+/* Estilo de tarjetas */
 .card {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 0.75rem; /* 12px */
-    padding: 1.5rem; /* 24px */
+    border-radius: 0.75rem;
+    padding: 1.5rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .card-title {
-    font-size: 1.25rem; /* 20px */
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--text-color);
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.75rem;
     margin-bottom: 1rem;
+    transition: color 0.3s, border-color 0.3s;
 }
 
-/* Form Elements */
+/* Elementos de formulario */
 label {
     display: block;
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
     color: var(--text-color);
     margin-bottom: 0.5rem;
+    transition: color 0.3s;
 }
 
 input[type="text"],
@@ -72,9 +89,9 @@ select {
     background-color: var(--input-bg);
     border: 1px solid var(--border-color);
     color: var(--text-color);
-    border-radius: 0.375rem; /* 6px */
+    border-radius: 0.375rem;
     padding: 0.5rem 0.75rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
 }
 
 input[type="text"]:focus,
@@ -82,10 +99,10 @@ input[type="number"]:focus,
 select:focus {
     outline: none;
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
-/* Button Styles */
+/* Estilos de botones */
 .btn {
     padding: 0.6rem 1.2rem;
     border-radius: 0.375rem;
@@ -112,20 +129,20 @@ select:focus {
     color: var(--bg-color);
 }
 .btn-secondary:hover {
-    background-color: #6ee7b7;
+    background-color: #4c8fee;
 }
 
-
-/* Performance Metrics Cards */
+/* Tarjetas de métricas */
 .metric-card {
-    background-color: #2d3748; /* A slightly different shade of gray */
+    background-color: #2d3748;
     padding: 1rem;
     border-radius: 0.5rem;
     border-left: 4px solid var(--accent-color);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .metric-value {
-    font-size: 1.5rem; /* 24px */
+    font-size: 1.5rem;
     font-weight: 700;
     color: white;
 }
@@ -135,9 +152,10 @@ select:focus {
     color: var(--text-color);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    transition: color 0.3s;
 }
 
-/* Custom Range Slider Styles */
+/* Deslizadores personalizados */
 input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
@@ -147,6 +165,7 @@ input[type="range"] {
     border-radius: 3px;
     cursor: pointer;
     margin: 0.5rem 0;
+    transition: background-color 0.3s;
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -176,11 +195,61 @@ input[type="range"]:hover::-moz-range-thumb {
     background: var(--accent-color-hover);
 }
 
-/* Diagram Specific Styles */
+/* Estilos específicos del diagrama */
 #pid-controls-container {
     font-family: 'Courier New', Courier, monospace;
 }
 
 #pid-controls-container .flex {
     margin-bottom: 2px;
+}
+
+#pidDiagram .signal-arrow line, #pidDiagram #feedback-signal {
+    stroke: var(--diagram-text-color);
+}
+#pidDiagram .signal-arrow text, #pidDiagram .pid-text {
+    fill: var(--diagram-text-color);
+}
+
+/* Animación de flujo de señal */
+.animated-arrow {
+    stroke-dasharray: 20;
+    animation: signalFlow 2s linear infinite;
+}
+
+@keyframes signalFlow {
+    from {
+        stroke-dashoffset: 20;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Panel de ayuda */
+#helpPanel {
+    transition: opacity 0.3s;
+}
+
+/* Indicador de carga */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Nuevos estilos para el display de la planta en el diagrama */
+#plant-display .numerator-display,
+#plant-display .denominator-display {
+    display: block;
+    padding: 0 5px;
+    color: var(--diagram-text-color);
+}
+
+.light-theme #plant-display hr {
+    border-color: #1f2937;
 }
