@@ -1,0 +1,282 @@
+/*
+ * Estilos personalizados para el Simulador PID Interactivo
+ * Complementa las clases de TailwindCSS para proporcionar un tema oscuro/claro consistente
+ */
+
+/* 1. Variables CSS para temas */
+:root {
+    --bg-color: #0d1a2d;
+    --card-bg: #1e3a5f;
+    --text-color: #e0e7ff;
+    --accent-color: #3b82f6;
+    --accent-color-hover: #2563eb;
+    --secondary-color: #60a5fa;
+    --border-color: #4b5563;
+    --input-bg: #2d3a51;
+    --diagram-text-color: var(--text-color);
+}
+
+/* Tema claro */
+.light-theme {
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-color: #1e293b;
+    --accent-color: #2563eb;
+    --accent-color-hover: #1d4ed8;
+    --secondary-color: #3b82f6;
+    --border-color: #e2e8f0;
+    --input-bg: #f1f5f9;
+    --diagram-text-color: #1e293b;
+}
+
+/* 2. Estilos base y globales */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Barra de desplazamiento personalizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--input-bg);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #5a6676;
+}
+
+/* 3. Estilos de componentes */
+
+/* Estilo de tarjetas */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+/* Elementos de formulario */
+label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+    transition: color 0.3s;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* Estilos de botones */
+.btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    border: none;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+}
+.btn-primary:hover {
+    background-color: var(--accent-color-hover);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--bg-color);
+}
+.btn-secondary:hover {
+    background-color: #4c8fee;
+}
+
+/* Tarjetas de métricas */
+.metric-card {
+    background-color: #2d3748;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--accent-color);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.3s;
+}
+
+/* Deslizadores personalizados */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--input-bg);
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 0.5rem 0;
+    transition: background-color 0.3s;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    border: 2px solid white;
+    transition: background-color 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--accent-color);
+    border-radius: 50%;
+    border: 2px solid white;
+    transition: background-color 0.2s;
+}
+
+input[type="range"]:hover::-webkit-slider-thumb {
+    background: var(--accent-color-hover);
+}
+input[type="range"]:hover::-moz-range-thumb {
+    background: var(--accent-color-hover);
+}
+
+/* Estilos específicos del diagrama */
+#pid-controls-container {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#pid-controls-container .flex {
+    margin-bottom: 2px;
+}
+
+#pidDiagram .signal-arrow line, #pidDiagram #feedback-signal {
+    stroke: var(--diagram-text-color);
+}
+#pidDiagram .signal-arrow text, #pidDiagram .pid-text {
+    fill: var(--diagram-text-color);
+}
+
+/* Animación de flujo de señal */
+.animated-arrow {
+    stroke-dasharray: 20;
+    animation: signalFlow 2s linear infinite;
+}
+
+@keyframes signalFlow {
+    from {
+        stroke-dashoffset: 20;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Panel de ayuda */
+#helpPanel {
+    transition: opacity 0.3s;
+}
+
+/* Indicador de carga */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Nuevos estilos para el display de la planta en el diagrama */
+#plant-display .numerator-display,
+#plant-display .denominator-display {
+    display: block;
+    padding: 0 5px;
+    color: var(--diagram-text-color);
+}
+
+.light-theme #plant-display hr {
+    border-color: #1f2937;
+}
+
+/* Mejoras para el gráfico */
+.chart-container {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+/* Controles PID en el diagrama para tema claro */
+.light-theme #pid-controls-container {
+    color: #1e293b;
+}
+
+.light-theme #pid-controls-container input[type="range"] {
+    background: #e2e8f0;
+}
+
+.light-theme #pid-controls-container input[type="range"]::-webkit-slider-thumb {
+    background: #2563eb;
+    border: 2px solid #f8fafc;
+}
+
+/* Mejores colores para la gráfica */
+canvas {
+    background-color: var(--card-bg);
+    border-radius: 0.5rem;
+}
