@@ -3,301 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Interactivo de Control PID</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <title>Simulador PID</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-900 text-gray-200 font-sans p-4 lg:p-8">
-
-<div class="max-w-7xl mx-auto">
-    <header class="text-center mb-8">
-        <div class="flex justify-between items-center">
-            <button id="themeToggle" class="btn btn-secondary">
-                <i class="fas fa-moon"></i> Cambiar Tema
-            </button>
-            <h1 class="text-4xl font-bold text-blue-400">Simulador Interactivo de Control PID</h1>
-            <button id="helpToggle" class="btn btn-secondary">
-                <i class="fas fa-question-circle"></i> Ayuda
-            </button>
-        </div>
-        <p class="text-gray-400 mt-2">Herramienta visual para entender y ajustar controladores PID en tiempo real.</p>
-    </header>
-
-    <div id="helpPanel" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
-        <div class="bg-gray-800 p-6 rounded-lg max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-blue-400">Guía de Uso</h2>
-                <button id="closeHelp" class="btn btn-secondary">
-                    <i class="fas fa-times"></i>
-                </button>
+<body>
+<header>
+    <h1>Simulador de Control PID</h1>
+    <button id="themeToggle">Cambiar Tema</button>
+</header>
+<div class="main-container">
+    <aside class="sidebar">
+        <h2>Parámetros del Controlador PID</h2>
+        <div class="parameters">
+            <div class="param-group">
+                <label for="kp">Kp (Ganancia Proporcional)</label>
+                <input type="number" id="kp" value="1.0" step="0.1">
             </div>
-            <div class="space-y-4">
-                <div>
-                    <h3 class="text-lg font-semibold text-blue-300">¿Qué es un controlador PID?</h3>
-                    <p class="text-gray-300">Un controlador PID (Proporcional-Integral-Derivativo) es un mecanismo de control que calcula la diferencia entre un valor deseado y uno medido, y aplica una corrección basada en tres parámetros:</p>
-                    <ul class="list-disc list-inside ml-4 mt-2 space-y-1">
-                        <li><strong>Kp (Proporcional):</strong> Reacciona al error actual</li>
-                        <li><strong>Ki (Integral):</strong> Corrige errores acumulados</li>
-                        <li><strong>Kd (Derivativo):</strong> Anticipa errores futuros</li>
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-blue-300">Cómo usar este simulador</h3>
-                    <ol class="list-decimal list-inside ml-4 space-y-2">
-                        <li>Configura la planta (sistema a controlar) con la función de transferencia</li>
-                        <li>Ajusta los parámetros PID usando los deslizadores</li>
-                        <li>Selecciona la señal de referencia deseada</li>
-                        <li>Observa la respuesta del sistema y las métricas de desempeño</li>
-                        <li>Usa la herramienta de sintonía para encontrar parámetros óptimos</li>
-                    </ol>
-                </div>
+            <div class="param-group">
+                <label for="ki">Ki (Ganancia Integral)</label>
+                <input type="number" id="ki" value="0.5" step="0.1">
+            </div>
+            <div class="param-group">
+                <label for="kd">Kd (Ganancia Derivativa)</label>
+                <input type="number" id="kd" value="0.2" step="0.1">
+            </div>
+            <div class="param-group">
+                <label for="setpoint">Set-point (Referencia)</label>
+                <input type="number" id="setpoint" value="1.0" step="0.1">
+            </div>
+            <div class="param-group">
+                <label for="timeStep">Paso de Tiempo (s)</label>
+                <input type="number" id="timeStep" value="0.1" step="0.01">
+            </div>
+            <div class="param-group">
+                <label for="simulationTime">Duración (s)</label>
+                <input type="number" id="simulationTime" value="20.0" step="1.0">
+            </div>
+        </div>
+        <div class="controls">
+            <button id="simulateBtn">Simular</button>
+            <button id="resetBtn">Resetear</button>
+        </div>
+    </aside>
+    <div class="results-section">
+        <div class="chart-container">
+            <canvas id="responseChart"></canvas>
+        </div>
+        <div class="metrics">
+            <h2>Métricas de Rendimiento</h2>
+            <div id="metrics-output">
+                <p>Sobremando: <span id="overshoot">N/A</span></p>
+                <p>Tiempo de Subida (10-90%): <span id="riseTime">N/A</span></p>
+                <p>Tiempo de Pico: <span id="peakTime">N/A</span></p>
+                <p>Tiempo de Establecimiento: <span id="settlingTime">N/A</span></p>
+                <p>Error en Estado Estacionario: <span id="steadyStateError">N/A</span></p>
             </div>
         </div>
     </div>
-
-    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 space-y-6">
-            <div class="card">
-                <div class="flex justify-between items-center">
-                    <h2 class="card-title">Diagrama del Sistema de Control</h2>
-                </div>
-                <div id="pidDiagram" class="w-full h-64 mt-4 relative">
-                </div>
-                <div id="signalPreview" class="absolute bg-gray-800 border border-blue-400 rounded-lg shadow-xl p-2 w-64 h-40 hidden" style="z-index: 50;">
-                    <canvas id="signalPreviewChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="flex justify-between items-center">
-                    <h2 class="card-title">Respuesta del Sistema</h2>
-                    <div class="flex space-x-2">
-                        <button id="addComparison" class="btn btn-secondary text-sm">
-                            <i class="fas fa-layer-group"></i> Comparar
-                        </button>
-                        <button id="clearComparisons" class="btn btn-secondary text-sm">
-                            <i class="fas fa-trash"></i> Limpiar
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-container h-96 mt-4 relative">
-                    <div id="simulationLoading" class="absolute inset-0 bg-gray-800 bg-opacity-70 flex items-center justify-center hidden">
-                        <div class="text-center">
-                            <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                            <p>Calculando simulación...</p>
-                        </div>
-                    </div>
-                    <canvas id="responseChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">Herramientas de Sintonía</h2>
-                <div class="space-y-3 mt-4">
-                    <div>
-                        <label for="tuningMethod">Método de Sintonía</label>
-                        <select id="tuningMethod">
-                            <option value="ziegler-nichols">Ziegler-Nichols</option>
-                            <option value="cohen-coon">Cohen-Coon</option>
-                            <option value="imc">IMC</option>
-                        </select>
-                    </div>
-
-                    <button id="startTuningButton" class="btn btn-secondary w-full">
-                        <i class="fas fa-tools"></i> Iniciar Proceso
-                    </button>
-
-                    <div id="tuningControls" class="hidden">
-                        <div>
-                            <label for="tuningKpSlider" class="flex justify-between">
-                                <span>Kp de Sintonía:</span>
-                                <span id="tuningKpValue">0</span>
-                            </label>
-                            <input type="range" id="tuningKpSlider" min="0" max="50" step="0.1" value="0" class="w-full">
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 text-center">
-                            <div class="metric-card">
-                                <div id="kuValue" class="metric-value">-</div>
-                                <div class="metric-label">Ganancia Última (Ku)</div>
-                            </div>
-                            <div class="metric-card">
-                                <div id="tuValue" class="metric-value">-</div>
-                                <div class="metric-label">Período Último (Tu)</div>
-                            </div>
-                        </div>
-
-                        <div id="tuningSuggestions"></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="lg:col-span-1 space-y-6">
-            <div class="card">
-                <h2 class="card-title">Configuración del Sistema</h2>
-                <div class="space-y-4 mt-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="plantModel">Modelo de Planta</label>
-                            <select id="plantModel" class="w-full">
-                                <option value="custom">Personalizado</option>
-                                <option value="motorDC">Motor DC</option>
-                                <option value="termico">Sistema Térmico</option>
-                                <option value="masa-resorte">Masa-Resorte</option>
-                                <option value="tanque">Nivel de Tanque</option>
-                            </select>
-                        </div>
-                        <div>
-                            <button id="saveConfig" class="btn btn-secondary mt-6 w-full">
-                                <i class="fas fa-save"></i> Guardar
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <button id="loadConfig" class="btn btn-secondary w-full">
-                            <i class="fas fa-upload"></i> Cargar
-                        </button>
-                    </div>
-
-                    <div id="customPlantParams">
-                        <div>
-                            <label for="numerator">Numerador de la Planta</label>
-                            <input type="text" id="numerator" value="1" placeholder="ej: 1, 2">
-                        </div>
-                        <div>
-                            <label for="denominator">Denominador de la Planta</label>
-                            <input type="text" id="denominator" value="1, 0.5, 1" placeholder="ej: 1, 2, 1">
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="kp" value="1">
-                    <input type="hidden" id="ki" value="0.5">
-                    <input type="hidden" id="kd" value="0.1">
-
-                    <hr class="border-gray-600"/>
-
-                    <div>
-                        <label for="controlType">Señal de Referencia</label>
-                        <select id="controlType">
-                            <option value="step">Escalón</option>
-                            <option value="ramp">Rampa</option>
-                            <option value="sine">Senoide</option>
-                            <option value="square">Cuadrada</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div id="amplitudeGroup">
-                            <label for="amplitude">Amplitud</label>
-                            <input type="number" id="amplitude" value="1" step="0.1">
-                        </div>
-                        <div id="frequencyGroup" class="hidden">
-                            <label for="frequency">Frecuencia (Hz)</label>
-                            <input type="number" id="frequency" value="0.5" step="0.1">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="disturbance">Perturbación (Ruido)</label>
-                        <input type="range" id="disturbance" min="0" max="1" step="0.05" value="0" class="w-full">
-                        <div class="flex justify-between text-xs text-gray-400">
-                            <span>0%</span>
-                            <span id="disturbanceValue">0%</span>
-                            <span>100%</span>
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-600"/>
-
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3 text-blue-300">Rangos de Parámetros</h3>
-                        <div class="grid grid-cols-3 gap-x-4 gap-y-2 items-center">
-                            <div></div>
-                            <div class="text-xs text-center text-gray-400">Mín</div>
-                            <div class="text-xs text-center text-gray-400">Máx</div>
-
-                            <label for="kpMin" class="font-bold text-gray-300">Kp</label>
-                            <input type="number" id="kpMin" value="0" class="slider-range-input">
-                            <input type="number" id="kpMax" value="20" class="slider-range-input">
-
-                            <label for="kiMin" class="font-bold text-gray-300">Ki</label>
-                            <input type="number" id="kiMin" value="0" class="slider-range-input">
-                            <input type="number" id="kiMax" value="10" class="slider-range-input">
-
-                            <label for="kdMin" class="font-bold text-gray-300">Kd</label>
-                            <input type="number" id="kdMin" value="0" class="slider-range-input">
-                            <input type="number" id="kdMax" value="5" class="slider-range-input">
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-600"/>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="simTime">Tiempo de Simulación (s)</label>
-                            <input type="number" id="simTime" value="20" min="1">
-                        </div>
-                        <div>
-                            <label for="dt">Paso de Tiempo (s)</label>
-                            <input type="number" id="dt" value="0.01" min="0.001" step="0.001">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="antiWindup">Anti-Windup</label>
-                            <select id="antiWindup">
-                                <option value="none">Ninguno</option>
-                                <option value="clamping">Clamping</option>
-                                <option value="backcalculation">Back-Calculation</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="derivativeFilter">Filtro Derivativo</label>
-                            <select id="derivativeFilter">
-                                <option value="none">Ninguno</option>
-                                <option value="firstOrder" selected>Primer Orden</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button id="runButton" class="btn btn-primary w-full mt-2">
-                        <i class="fas fa-play"></i> Ejecutar Simulación
-                    </button>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2 class="card-title">Métricas de Desempeño</h2>
-                <div class="grid grid-cols-2 gap-4 mt-4 text-center">
-                    <div class="metric-card">
-                        <div id="overshoot" class="metric-value">-</div>
-                        <div class="metric-label">Sobreimpulso</div>
-                    </div>
-                    <div class="metric-card">
-                        <div id="riseTime" class="metric-value">-</div>
-                        <div class="metric-label">Tiempo de Subida</div>
-                    </div>
-                    <div class="metric-card">
-                        <div id="settlingTime" class="metric-value">-</div>
-                        <div class="metric-label">Tiempo de Establecimiento</div>
-                    </div>
-                    <div class="metric-card">
-                        <div id="steadyStateError" class="metric-value">-</div>
-                        <div class="metric-label">Error Estacionario</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
 <script src="pid_controller.js"></script>
 </body>
 </html>
